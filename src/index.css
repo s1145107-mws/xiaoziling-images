@@ -41,6 +41,14 @@ body {
   user-select: none;
   -webkit-touch-callout: none;
 }
+/* 輸入框（班別學號）必須可選取，否則 iPad Safari 無法輸入及顯示游標 */
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
 html,
 body,
 button,

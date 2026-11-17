@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion, useAnimationControls } from 'framer-motion';
-import type { ChoiceOption, ChoiceQuestion, ComposeQuestion, LevelRecord, Question } from '../types';
+import type { ChoiceOption, ChoiceQuestion, ComposeQuestion, Grade, LevelRecord, Question } from '../types';
 import {
   BOSS_MAX_HP,
   DAMAGE_FIRST,
@@ -12,7 +12,6 @@ import {
 } from '../data/levels';
 import { QUESTION_SETS } from '../data/questionBank';
 import { audio } from '../audio/AudioEngine';
-import { addToWrongBook } from '../lib/storage';
 import { useCountdown } from '../hooks/useCountdown';
 import LevelBackground from '../components/LevelBackground';
 import HpBar from '../components/HpBar';
@@ -23,6 +22,7 @@ import HintModal from '../components/HintModal';
 import { Badge, BossSprite, Shard, XiaoZiLing } from '../components/Sprites';
 import FitStage, { useStage } from '../components/FitStage';
 import SystemButtons from '../components/SystemButtons';
+import StudentChip from '../components/StudentChip';
 import { battleLayout } from '../lib/battleLayout';
 
 /**
@@ -55,7 +55,8 @@ interface Props {
   /** 由上一關「進入下一關」而來：開場改為簡短自動播放 */
   quickIntro?: boolean;
   onExit: () => void;
-  onWrongBookChange: () => void;
+  /** 首答答錯或超時：由 App 錄入當前同學的錯字圖鑑 */
+  onFirstWrong: (question: Question, grade: Grade) => void;
 }
 
 /** 戰鬥畫面：整個介面放在 FitStage 內，任何螢幕都一屏完整顯示、不需捲動 */
@@ -67,7 +68,7 @@ export default function Battle(props: Props) {
   );
 }
 
-function BattleInner({ setId, levelIndex, onVictory, quickIntro = false, onExit, onWrongBookChange }: Props) {
+function BattleInner({ setId, levelIndex, onVictory, quickIntro = false, onExit, onFirstWrong }: Props) {
   const meta = LEVELS[levelIndex];
   const stage = useStage();
   const L = battleLayout(stage);
@@ -172,8 +173,7 @@ function BattleInner({ setId, levelIndex, onVictory, quickIntro = false, onExit,
     if (phase !== 'answering' || attempt !== 'first') return;
     setHintReason(reason);
     setWrongFirstTries((n) => n + 1);
-    addToWrongBook(question, meta.grade);
-    onWrongBookChange();
+    onFirstWrong(question, meta.grade);
     if (reason === 'timeout') audio.timeUp();
     else audio.wrong();
     showToast(reason === 'timeout' ? '時間到！' : '答錯了……', false);
@@ -304,16 +304,23 @@ function BattleInner({ setId, levelIndex, onVictory, quickIntro = false, onExit,
           <button type="button" className="btn btn-white h-12 shrink-0 px-4 py-0 text-lg" onClick={() => setConfirmExit(true)}>
             ⬅ 地圖
           </button>
-          <div className="truncate rounded-2xl border-4 border-ink bg-white px-4 py-1.5 text-xl font-black">
-            第{['一', '二', '三'][levelIndex]}關・{meta.name}
-            <span className="ml-2 rounded-full bg-amber-200 px-2 text-base">{meta.grade}</span>
+          <div className="min-w-0 truncate rounded-2xl border-4 border-ink bg-white px-4 py-1.5 text-xl font-black">
+            第{['一', '二', '三'][levelIndex]}關{!L.portrait && `・${meta.name}`}
+            {!L.portrait && <span className="ml-2 rounded-full bg-amber-200 px-2 text-base">{meta.grade}</span>}
           </div>
+          <StudentChip allowSwitch={false} short={L.portrait} />
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <span
             className={`rounded-2xl border-4 border-ink px-4 py-1.5 text-xl font-black ${round > 0 ? 'bg-pink-300' : 'bg-white'}`}
           >
-            {round > 0 ? `🔁 重試第 ${round} 輪・${pos + 1}/${queue.length}` : `第 ${pos + 1} / ${queue.length} 題`}
+            {round > 0
+              ? L.portrait
+                ? `🔁 ${pos + 1}/${queue.length}`
+                : `🔁 重試第 ${round} 輪・${pos + 1}/${queue.length}`
+              : L.portrait
+                ? `${pos + 1} / ${queue.length} 題`
+                : `第 ${pos + 1} / ${queue.length} 題`}
           </span>
           <span className="rounded-2xl border-4 border-ink bg-yellow-300 px-4 py-1.5 text-xl font-black tabular-nums">⭐ {totalScore}</span>
           <SystemButtons compact />

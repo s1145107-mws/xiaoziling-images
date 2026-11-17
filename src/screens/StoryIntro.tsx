@@ -5,6 +5,7 @@ import { BossSprite, Shard, XiaoZiLing, ZhengziCore } from '../components/Sprite
 import { audio } from '../audio/AudioEngine';
 import FitStage from '../components/FitStage';
 import SystemButtons from '../components/SystemButtons';
+import StudentChip from '../components/StudentChip';
 
 interface Page {
   speaker: string;
@@ -56,6 +57,10 @@ export default function StoryIntro({ onDone }: { onDone: () => void }) {
   return (
     <FitStage background={<LevelBackground theme={p.scene === 'attack' || p.scene === 'shards' ? 'space' : 'menu'} />}>
       <div className="relative flex h-full w-full cursor-pointer flex-col items-center justify-between p-6" onClick={next}>
+        {/* 左上角：當前同學（阻止點擊冒泡到「點擊繼續」） */}
+        <div className="absolute left-5 top-5 z-20" onClick={(e) => e.stopPropagation()}>
+          <StudentChip />
+        </div>
         {/* 右上角按鈕：阻止點擊冒泡到「點擊繼續」 */}
         <div className="absolute right-5 top-5 z-20 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
           <button type="button" className="btn btn-white h-12 px-4 py-0 text-lg" onClick={onDone}>

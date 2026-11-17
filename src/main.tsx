@@ -15,7 +15,10 @@ audio.installAutoUnlock();
 const block = (e: Event) => e.preventDefault();
 document.addEventListener('gesturestart', block, { passive: false });
 document.addEventListener('gesturechange', block, { passive: false });
-document.addEventListener('contextmenu', block);
+document.addEventListener('contextmenu', (e) => {
+  // 輸入框保留長按選單（貼上等）
+  if (!(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) e.preventDefault();
+});
 document.addEventListener(
   'touchmove',
   (e) => {

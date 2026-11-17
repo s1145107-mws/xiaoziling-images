@@ -6,6 +6,7 @@ import LevelBackground from '../components/LevelBackground';
 import { Badge, Shard } from '../components/Sprites';
 import FitStage from '../components/FitStage';
 import SystemButtons from '../components/SystemButtons';
+import StudentChip from '../components/StudentChip';
 
 interface Props {
   save: SetProgress;
@@ -26,15 +27,15 @@ export default function LevelMap({ save, wrongCount, onStart, onMenu, onOpenWron
     <FitStage background={<LevelBackground theme="menu" />}>
       <div className="relative flex h-full w-full flex-col items-center p-5">
         <header className="relative z-10 flex w-full items-center justify-between gap-2">
-          <button type="button" className="btn btn-white h-12 px-4 py-0 text-lg" onClick={onMenu}>
-            ⬅ 選擇題庫
-          </button>
-          <span className="rounded-2xl border-4 border-ink bg-white px-4 py-2 text-lg font-black">
-            🗺️ {QUESTION_SETS[save.setId].name}
-          </span>
+          <div className="flex items-center gap-2">
+            <button type="button" className="btn btn-white h-12 px-4 py-0 text-lg" onClick={onMenu}>
+              ⬅ 選擇題庫
+            </button>
+            <StudentChip />
+          </div>
           <div className="flex items-center gap-2">
             <button type="button" className="btn btn-blue h-12 px-4 py-0 text-lg" onClick={onOpenWrongBook}>
-              📖 錯字圖鑑（{wrongCount}）
+              📖 圖鑑（{wrongCount}）
             </button>
             <SystemButtons compact />
           </div>
@@ -42,7 +43,7 @@ export default function LevelMap({ save, wrongCount, onStart, onMenu, onOpenWron
 
         {/* 碎片收集欄 */}
         <div className="panel relative z-10 mt-4 flex items-center gap-3 px-4 py-2">
-          <span className="font-black">正字碎片：</span>
+          <span className="font-black">🗺️ {QUESTION_SETS[save.setId].name}・正字碎片：</span>
           {LEVELS.map((l, i) => (
             <Shard key={l.theme} theme={l.theme} size={48} dim={!save.records[i].cleared} />
           ))}

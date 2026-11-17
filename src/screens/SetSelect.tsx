@@ -8,6 +8,7 @@ import LevelBackground from '../components/LevelBackground';
 import { Badge } from '../components/Sprites';
 import FitStage from '../components/FitStage';
 import SystemButtons from '../components/SystemButtons';
+import StudentChip from '../components/StudentChip';
 
 interface Props {
   save: SaveData;
@@ -34,9 +35,12 @@ export default function SetSelect({ save, wrongCount, onPlay, onMap, onFinal, on
     <FitStage background={<LevelBackground theme="menu" />}>
       <div className="relative flex h-full w-full flex-col items-center p-5">
         <header className="relative z-10 flex w-full items-center justify-between gap-2">
-          <button type="button" className="btn btn-white h-12 px-4 py-0 text-lg" onClick={onBack}>
-            🏠 主選單
-          </button>
+          <div className="flex items-center gap-2">
+            <button type="button" className="btn btn-white h-12 px-4 py-0 text-lg" onClick={onBack}>
+              🏠 主選單
+            </button>
+            <StudentChip />
+          </div>
           <div className="flex items-center gap-2">
             <button type="button" className="btn btn-blue h-12 px-4 py-0 text-lg" onClick={onOpenWrongBook}>
               📖 錯字圖鑑（{wrongCount}）
