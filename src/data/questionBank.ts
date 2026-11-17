@@ -38,8 +38,8 @@ interface WrongStroke {
 }
 
 /**
- * 筆畫題：三個選項文字相同，差異由 SVG 筆畫渲染器（或 /public/images/strokes/ 手寫圖片）呈現。
- * 選項圖片命名：/images/strokes/{題號}_{a|b|c}.png，a 為正確，b / c 為誘錯 1 / 2。
+ * 筆畫題：三個選項文字相同，差異由 SVG 筆畫渲染器（或 public/images/strokes/ 手寫圖片）呈現。
+ * 選項圖片以相對路徑載入：./images/strokes/{題號}_{a|b|c}.png 或 .jpg，a 為正確，b / c 為誘錯 1 / 2。
  */
 function stroke(
   id: string,

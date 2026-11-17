@@ -9,7 +9,7 @@ interface Props {
 
 /**
  * 以 hanzi-writer 逐字播放標準筆順動畫（一字寫完再寫下一字，全詞寫完後自動重播）。
- * 筆順數據優先讀取本地 /hanzi-data/，其次 CDN。
+ * 筆順數據優先讀取本地 ./hanzi-data/，其次 CDN。
  */
 export default function StrokeAnimator({ text, size = 120 }: Props) {
   const boxRefs = useRef<(HTMLDivElement | null)[]>([]);

@@ -21,7 +21,7 @@ async function fetchJson(url: string): Promise<HanziCharData> {
 
 /**
  * 載入次序：
- * 1. 本地 /hanzi-data/<字>.json（npm run dev/build 時由 hanzi-writer-data 自動複製，可自行補充繁體字形）
+ * 1. 本地 ./hanzi-data/<字>.json（npm run dev/build 時由 hanzi-writer-data 自動複製，可自行補充繁體字形）
  * 2. jsDelivr CDN 上的 hanzi-writer-data
  */
 export function loadCharData(char: string): Promise<HanziCharData> {
