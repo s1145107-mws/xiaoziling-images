@@ -82,9 +82,38 @@ class AudioEngine {
     return this._muted;
   }
 
-  /** 必須在使用者點擊後呼叫（瀏覽器自動播放政策） */
-  unlock() {
+  private primed = false;
+  private listening = false;
+
+  /**
+   * iPad / iPhone Safari：AudioContext 必須在使用者手勢內 resume() 才會發聲。
+   * 安裝全域監聽：首次觸控任何地方即自動解鎖；之後若被系統中斷
+   * （鎖屏、切換 App、來電），下一次觸控會再次自動恢復。
+   */
+  installAutoUnlock() {
+    if (this.listening) return;
+    this.listening = true;
+    const handler = () => this.unlock(true);
+    const opts = { capture: true, passive: true } as const;
+    for (const ev of ['touchend', 'pointerdown', 'click', 'keydown'] as const) {
+      window.addEventListener(ev, handler, opts);
+    }
+    // 由背景回到前台時，重新嘗試恢復（部分瀏覽器容許）
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && this.ctx && this.ctx.state !== 'running') void this.ctx.resume().catch(() => {});
+    });
+  }
+
+  /** 必須在使用者點擊後呼叫（瀏覽器自動播放政策）；gesture = true 表示正在使用者手勢內 */
+  unlock(gesture = false) {
     if (!this.ctx) {
+      // iPadOS 17+ Safari：設定為「播放」類型，令遊戲音效不受靜音開關影響
+      const nav = navigator as Navigator & { audioSession?: { type: string } };
+      try {
+        if (nav.audioSession) nav.audioSession.type = 'playback';
+      } catch {
+        /* 舊版不支援時忽略 */
+      }
       const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (!Ctx) return;
       this.ctx = new Ctx();
@@ -99,7 +128,16 @@ class AudioEngine {
       this.sfxBus.connect(this.master);
       this.noiseBuf = this.makeNoise();
     }
-    if (this.ctx.state === 'suspended') void this.ctx.resume();
+    // iOS 可能是 'suspended' 或 'interrupted'：只要不是 running 就在手勢內恢復
+    if (this.ctx.state !== 'running') void this.ctx.resume().catch(() => {});
+    // iOS 舊版：在手勢內播放一段無聲緩衝，才會真正解鎖輸出
+    if (gesture && !this.primed) {
+      this.primed = true;
+      const src = this.ctx.createBufferSource();
+      src.buffer = this.ctx.createBuffer(1, 1, this.ctx.sampleRate);
+      src.connect(this.ctx.destination);
+      src.start(0);
+    }
   }
 
   setMuted(m: boolean) {

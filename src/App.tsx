@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { LevelRecord, SaveData, SetId, WrongBookEntry } from './types';
 import { emptyProgress, loadSave, loadSettings, loadWrongBook, writeSave, writeSettings } from './lib/storage';
@@ -10,6 +10,7 @@ import LevelMap from './screens/LevelMap';
 import Battle from './screens/Battle';
 import FinalScreen from './screens/FinalScreen';
 import WrongBook from './components/WrongBook';
+import { ControlsContext } from './components/SystemButtons';
 
 type Screen = 'menu' | 'select' | 'story' | 'map' | 'battle' | 'final';
 
@@ -27,6 +28,7 @@ export default function App() {
   const [muted, setMuted] = useState(() => loadSettings().muted);
 
   const progress = save.sets[setId];
+  const controls = useMemo(() => ({ muted, toggleMute: () => (audio.unlock(), audio.click(), setMuted((m) => !m)) }), [muted]);
 
   useEffect(() => {
     audio.setMuted(muted);
@@ -103,89 +105,88 @@ export default function App() {
   };
 
   return (
-    <div className="h-full w-full overflow-y-auto font-round">
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={screen === 'battle' ? `battle-${battleKey}` : screen}
-          className="min-h-full"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.25 }}
-        >
-          {screen === 'menu' && (
-            <MainMenu
-              wrongCount={wrongBook.length}
-              muted={muted}
-              onStart={() => go('select')}
-              onOpenWrongBook={openWrongBook}
-              onToggleMute={() => (audio.unlock(), setMuted((m) => !m))}
-            />
-          )}
-          {screen === 'select' && (
-            <SetSelect
-              save={save}
-              wrongCount={wrongBook.length}
-              onPlay={playSet}
-              onMap={(id) => (setSetId(id), go('map'))}
-              onFinal={(id) => (setSetId(id), go('final'))}
-              onReset={resetSet}
-              onBack={() => go('menu')}
-              onOpenWrongBook={openWrongBook}
-            />
-          )}
-          {screen === 'story' && (
-            <StoryIntro
-              onDone={() => {
-                updateSave({ ...save, storySeen: true });
-                if (afterStory !== null) {
-                  const level = afterStory;
-                  setAfterStory(null);
-                  startLevel(level, false);
-                } else {
-                  go('map');
-                }
-              }}
-            />
-          )}
-          {screen === 'map' && (
-            <LevelMap
-              save={progress}
-              wrongCount={wrongBook.length}
-              onStart={(i) => (audio.click(), startLevel(i, false))}
-              onMenu={() => go('select')}
-              onOpenWrongBook={openWrongBook}
-              onFinal={() => go('final')}
-            />
-          )}
-          {screen === 'battle' && (
-            <Battle
-              key={battleKey}
-              setId={setId}
-              levelIndex={battleLevel}
-              quickIntro={quickIntro}
-              onVictory={handleVictory}
-              onExit={() => go('map')}
-              onWrongBookChange={() => setWrongBook(loadWrongBook())}
-              muted={muted}
-              onToggleMute={() => setMuted((m) => !m)}
-            />
-          )}
-          {screen === 'final' && (
-            <FinalScreen save={progress} onOpenWrongBook={openWrongBook} onChooseSet={() => go('select')} onMenu={() => go('menu')} />
-          )}
-        </motion.div>
-      </AnimatePresence>
+    <ControlsContext.Provider value={controls}>
+      <div className="absolute inset-0 overflow-hidden font-round">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={screen === 'battle' ? `battle-${battleKey}` : screen}
+            className="absolute inset-0"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            {screen === 'menu' && (
+              <MainMenu wrongCount={wrongBook.length} onStart={() => go('select')} onOpenWrongBook={openWrongBook} />
+            )}
+            {screen === 'select' && (
+              <SetSelect
+                save={save}
+                wrongCount={wrongBook.length}
+                onPlay={playSet}
+                onMap={(id) => (setSetId(id), go('map'))}
+                onFinal={(id) => (setSetId(id), go('final'))}
+                onReset={resetSet}
+                onBack={() => go('menu')}
+                onOpenWrongBook={openWrongBook}
+              />
+            )}
+            {screen === 'story' && (
+              <StoryIntro
+                onDone={() => {
+                  updateSave({ ...save, storySeen: true });
+                  if (afterStory !== null) {
+                    const level = afterStory;
+                    setAfterStory(null);
+                    startLevel(level, false);
+                  } else {
+                    go('map');
+                  }
+                }}
+              />
+            )}
+            {screen === 'map' && (
+              <LevelMap
+                save={progress}
+                wrongCount={wrongBook.length}
+                onStart={(i) => (audio.click(), startLevel(i, false))}
+                onMenu={() => go('select')}
+                onOpenWrongBook={openWrongBook}
+                onFinal={() => go('final')}
+              />
+            )}
+            {screen === 'battle' && (
+              <Battle
+                key={battleKey}
+                setId={setId}
+                levelIndex={battleLevel}
+                quickIntro={quickIntro}
+                onVictory={handleVictory}
+                onExit={() => go('map')}
+                onWrongBookChange={() => setWrongBook(loadWrongBook())}
+              />
+            )}
+            {screen === 'final' && (
+              <FinalScreen
+                save={progress}
+                onOpenWrongBook={openWrongBook}
+                onChooseSet={() => go('select')}
+                onMenu={() => go('menu')}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
 
-      <AnimatePresence>
-        {showWrongBook && (
-          <WrongBook
-            entries={wrongBook}
-            onClose={() => (audio.click(), setShowWrongBook(false))}
-            onCleared={() => setWrongBook([])}
-          />
-        )}
-      </AnimatePresence>
-    </div>
+        <AnimatePresence>
+          {showWrongBook && (
+            <WrongBook
+              entries={wrongBook}
+              onClose={() => (audio.click(), setShowWrongBook(false))}
+              onCleared={() => setWrongBook([])}
+            />
+          )}
+        </AnimatePresence>
+      </div>
+    </ControlsContext.Provider>
   );
 }

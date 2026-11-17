@@ -2,7 +2,18 @@
 <html lang="zh-HK">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <!-- 全螢幕、禁止縮放；viewport-fit=cover 讓畫面延伸到 iPad 圓角 / Home 指示條區域（程式會自動避開安全區域） -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <!-- iPad「加入主畫面」後以全螢幕 App 形式開啟 -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="小字靈" />
+    <meta name="theme-color" content="#7dd3fc" />
+    <meta name="format-detection" content="telephone=no" />
     <title>小字靈：正字保衛戰</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✨</text></svg>" />
     <!-- 網絡可用時載入楷書字體；離線時自動退回系統楷體 -->

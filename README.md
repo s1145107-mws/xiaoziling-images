@@ -52,6 +52,8 @@ xiaoziling/
    │  ├─ ChoicePanel.tsx            # 辨認題（同音 / 筆畫）三選一
    │  ├─ ComposePanel.tsx           # 組字題（拖拽或點擊填入，即時預覽）
    │  ├─ HintModal.tsx              # 錯後提示、筆順動畫、思考問題、補答
+   │  ├─ FitStage.tsx               # 全螢幕自適應舞台（等比例縮放、一屏顯示）
+   │  ├─ SystemButtons.tsx          # 右上角全螢幕 / 音效按鈕
    │  ├─ TimerRing.tsx / HpBar.tsx / Sprites.tsx / LevelBackground.tsx
    │  ├─ WrongBook.tsx              # 錯字圖鑑列表＋匯出
    │  └─ StrokeInspector.tsx        # 老師工具：檢視筆畫序號與誘錯渲染
@@ -60,6 +62,14 @@ xiaoziling/
       ├─ Battle.tsx                 # 單關戰鬥狀態機
       └─ FinalScreen.tsx            # 正字核心重組動畫與總結算
 ```
+
+## 全螢幕與 iPad / 電腦適配
+
+- 所有畫面都放在 `FitStage` 內：以固定設計畫布排版（橫向高 800、寬 1060–1600；直向寬 820、高 1000–1400），再按視窗等比例縮放，鋪滿 `100vw × 100dvh`。戰鬥畫面的血條、30 秒倒數環、題幹和三個選項 / 組字槽永遠一屏顯示，不會出現捲軸。
+- 每個畫面右上角有「全螢幕」按鈕（Fullscreen API，含 Safari `webkit` 前綴；不支援的瀏覽器會自動隱藏）和音效開關。
+- iPad：`viewport-fit=cover`、禁止縮放、`apple-mobile-web-app-capable`；全頁 `user-select: none`、取消長按選單和雙擊放大；加入主畫面後可全螢幕開啟。
+- 組字題：部件卡片以 Pointer Events 拖曳（`touch-action: none`），拖到字槽上方時字槽會發亮；亦可直接點擊部件，部件會飛入字槽。
+- 音效：首次觸控任何地方即自動 `AudioContext.resume()` 解鎖；被系統中斷（鎖屏、切換 App）後，下一次觸控會自動恢復。
 
 ## 規則實現摘要
 
