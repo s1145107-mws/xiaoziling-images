@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Noto Sans HK', 'PingFang HK', 'Microsoft JhengHei', sans-serif;
+  color: #3b2a1a;
+  background: #fff8e7;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  overscroll-behavior: none;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl border-4 border-ink px-6 py-3 text-xl font-black shadow-pop transition active:translate-y-1 active:shadow-pop-sm disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-yellow {
+    @apply bg-yellow-300 hover:bg-yellow-200;
+  }
+  .btn-green {
+    @apply bg-lime-400 hover:bg-lime-300;
+  }
+  .btn-blue {
+    @apply bg-sky-300 hover:bg-sky-200;
+  }
+  .btn-pink {
+    @apply bg-pink-300 hover:bg-pink-200;
+  }
+  .btn-white {
+    @apply bg-white hover:bg-amber-50;
+  }
+  .panel {
+    @apply rounded-3xl border-4 border-ink bg-cream shadow-pop;
+  }
+  .kai {
+    font-family: 'LXGW WenKai TC', 'BiauKai', 'DFKai-SB', '標楷體', 'Kaiti TC', 'STKaiti', 'KaiTi', serif;
+  }
+}
+
+/* hanzi-writer 產生的 svg 置中 */
+.hw-box svg {
+  display: block;
+}
