@@ -12,25 +12,62 @@ import type {
 import { ERROR_TYPE_BY_KIND, rateLevel } from '../data/levels';
 import { cleanHint } from './utils';
 
-const SAVE_KEY = 'xiaoziling.save.v2';
-const SAVE_KEY_V1 = 'xiaoziling.save.v1';
-const WRONG_KEY = 'xiaoziling.wrongbook.v1';
+/**
+ * 儲存結構（每位同學獨立）：
+ *   xiaoziling_save_<班別學號>   兩套題目的通關進度與星級
+ *   xiaoziling_typos_<班別學號>  跨關錯字圖鑑
+ * 例如 3F01 與 3F02 的資料完全分開，互不干擾。
+ * 目前使用中的同學記在 sessionStorage：重新整理頁面會保留；關閉分頁後需重新輸入，
+ * 避免下一位同學在共用 iPad 上誤用上一位的帳號。
+ */
+const saveKey = (student: string) => `xiaoziling_save_${student}`;
+const typosKey = (student: string) => `xiaoziling_typos_${student}`;
+const CURRENT_STUDENT_KEY = 'xiaoziling_current_student';
 const SETTINGS_KEY = 'xiaoziling.settings.v1';
 
-function read<T>(key: string): T | null {
+function read<T>(key: string, store: Storage = localStorage): T | null {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = store.getItem(key);
     return raw ? (JSON.parse(raw) as T) : null;
   } catch {
     return null;
   }
 }
 
-function write(key: string, value: unknown) {
+function write(key: string, value: unknown, store: Storage = localStorage) {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    store.setItem(key, JSON.stringify(value));
   } catch {
     /* 私隱模式或空間不足時忽略 */
+  }
+}
+
+/* ----------------------------- 班別學號 ----------------------------- */
+
+export const STUDENT_ID_MAX_LENGTH = 10;
+
+/**
+ * 整理輸入的班別學號：
+ * - NFKC：iPad 中文鍵盤輸入的全形「３ｆ０１」轉為半形「3f01」
+ * - 去除前後空格、轉為大寫
+ */
+export function normalizeStudentId(raw: string): string {
+  return raw.normalize('NFKC').trim().toUpperCase().slice(0, STUDENT_ID_MAX_LENGTH);
+}
+
+export function loadCurrentStudent(): string | null {
+  const s = read<string>(CURRENT_STUDENT_KEY, sessionStorage);
+  return s ? normalizeStudentId(s) || null : null;
+}
+
+export function writeCurrentStudent(student: string | null) {
+  if (student) write(CURRENT_STUDENT_KEY, student, sessionStorage);
+  else {
+    try {
+      sessionStorage.removeItem(CURRENT_STUDENT_KEY);
+    } catch {
+      /* 忽略 */
+    }
   }
 }
 
@@ -46,44 +83,14 @@ function emptySave(): SaveData {
   return { version: 2, storySeen: false, sets: { 1: emptyProgress(1), 2: emptyProgress(2) } };
 }
 
-/** 舊版（v1）只有一套隨機抽取的進度：轉移到對應的題庫 */
-interface SaveDataV1 {
-  version: 1;
-  setId: SetId;
-  levelIndex: number;
-  records: LevelRecord[];
-  storySeen: boolean;
-  updatedAt: number;
-}
-
-function migrateV1(): SaveData | null {
-  const old = read<SaveDataV1>(SAVE_KEY_V1);
-  if (!old || old.version !== 1 || (old.setId !== 1 && old.setId !== 2)) return null;
-  const save = emptySave();
-  save.storySeen = !!old.storySeen;
-  save.sets[old.setId] = {
-    setId: old.setId,
-    levelIndex: old.levelIndex,
-    records: old.records,
-    updatedAt: old.updatedAt,
-  };
-  return save;
-}
-
-export function loadSave(): SaveData {
-  const s = read<SaveData>(SAVE_KEY);
+export function loadSave(student: string): SaveData {
+  const s = read<SaveData>(saveKey(student));
   if (s && s.version === 2 && s.sets?.[1] && s.sets?.[2]) return s;
-  const migrated = migrateV1();
-  if (migrated) {
-    writeSave(migrated);
-    localStorage.removeItem(SAVE_KEY_V1);
-    return migrated;
-  }
   return emptySave();
 }
 
-export function writeSave(save: SaveData) {
-  write(SAVE_KEY, save);
+export function writeSave(student: string, save: SaveData) {
+  write(saveKey(student), save);
 }
 
 /** 已通關關數（0-3） */
@@ -98,17 +105,17 @@ export function starCount(p: SetProgress): number {
 
 /* ----------------------------- 錯字圖鑑 ----------------------------- */
 
-export function loadWrongBook(): WrongBookEntry[] {
-  return read<WrongBookEntry[]>(WRONG_KEY) ?? [];
+export function loadWrongBook(student: string): WrongBookEntry[] {
+  return read<WrongBookEntry[]>(typosKey(student)) ?? [];
 }
 
 function correctWord(q: Question): string {
   return q.kind === 'compose' ? (q as ComposeQuestion).word : (q as ChoiceQuestion).answer;
 }
 
-/** 首答答錯 / 超時時錄入；同一題去重合併，累計錯誤次數 */
-export function addToWrongBook(q: Question, grade: Grade): WrongBookEntry[] {
-  const book = loadWrongBook();
+/** 首答答錯 / 超時時錄入當前同學的圖鑑；同一題去重合併，累計錯誤次數 */
+export function addToWrongBook(student: string, q: Question, grade: Grade): WrongBookEntry[] {
+  const book = loadWrongBook(student);
   const key = q.id;
   const existing = book.find((e) => e.key === key);
   if (existing) {
@@ -126,12 +133,12 @@ export function addToWrongBook(q: Question, grade: Grade): WrongBookEntry[] {
       lastAt: Date.now(),
     });
   }
-  write(WRONG_KEY, book);
+  write(typosKey(student), book);
   return book;
 }
 
-export function clearWrongBook() {
-  localStorage.removeItem(WRONG_KEY);
+export function clearWrongBook(student: string) {
+  localStorage.removeItem(typosKey(student));
 }
 
 /* ------------------------------- 設定 ------------------------------- */

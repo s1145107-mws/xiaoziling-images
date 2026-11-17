@@ -2,13 +2,22 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { isFullscreen, isFullscreenSupported, onFullscreenChange, toggleFullscreen } from '../lib/fullscreen';
 import { audio } from '../audio/AudioEngine';
 
-/** 全域控制（音效開關），由 App 提供，各畫面的右上角按鈕共用 */
+/** 全域控制（音效開關、當前同學），由 App 提供，各畫面的頂部按鈕共用 */
 export interface Controls {
   muted: boolean;
   toggleMute: () => void;
+  /** 當前同學的班別學號（例如 3F01） */
+  student: string | null;
+  /** 回到標題畫面重新輸入班別學號 */
+  switchStudent: () => void;
 }
 
-export const ControlsContext = createContext<Controls>({ muted: false, toggleMute: () => {} });
+export const ControlsContext = createContext<Controls>({
+  muted: false,
+  toggleMute: () => {},
+  student: null,
+  switchStudent: () => {},
+});
 
 /** 右上角系統按鈕：全螢幕切換 + 音效開關 */
 export default function SystemButtons({ className = '', compact = false }: { className?: string; compact?: boolean }) {

@@ -8,6 +8,7 @@ import { Badge, Shard, XiaoZiLing, ZhengziCore } from '../components/Sprites';
 import { audio } from '../audio/AudioEngine';
 import FitStage, { useStage } from '../components/FitStage';
 import SystemButtons from '../components/SystemButtons';
+import StudentChip from '../components/StudentChip';
 
 interface Props {
   save: SetProgress;
@@ -54,6 +55,7 @@ function FinalContent({ save, onOpenWrongBook, onChooseSet, onMenu }: Props) {
     <div
       className={`relative flex h-full w-full items-center justify-center p-6 ${landscape ? 'flex-row gap-6' : 'flex-col gap-4'}`}
     >
+      <StudentChip className="absolute left-5 top-5 z-20" />
       <SystemButtons compact className="absolute right-5 top-5 z-20" />
       <div className={`relative z-10 flex flex-col items-center ${landscape ? 'w-[44%]' : 'w-full'}`}>
         {/* 正字核心重組 */}

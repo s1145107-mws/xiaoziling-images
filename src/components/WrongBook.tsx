@@ -6,6 +6,8 @@ import { clearWrongBook } from '../lib/storage';
 import { audio } from '../audio/AudioEngine';
 
 interface Props {
+  /** 當前同學的班別學號 */
+  student: string;
   entries: WrongBookEntry[];
   onClose: () => void;
   onCleared: () => void;
@@ -13,7 +15,7 @@ interface Props {
 
 const GRADE_COLOR: Record<Grade, string> = { 小一: 'bg-lime-200', 小二: 'bg-purple-200', 小三: 'bg-sky-200' };
 
-export default function WrongBook({ entries, onClose, onCleared }: Props) {
+export default function WrongBook({ student, entries, onClose, onCleared }: Props) {
   const [msg, setMsg] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const rows = sortWrongBook(entries);
@@ -21,7 +23,7 @@ export default function WrongBook({ entries, onClose, onCleared }: Props) {
   const doExport = () => {
     audio.click();
     try {
-      const name = exportWrongBook(rows);
+      const name = exportWrongBook(student, rows);
       setMsg(`已下載：${name}`);
     } catch {
       setMsg('匯出失敗，請再試一次。');
@@ -42,12 +44,17 @@ export default function WrongBook({ entries, onClose, onCleared }: Props) {
         transition={{ type: 'spring', stiffness: 240, damping: 20 }}
       >
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-3xl font-black">📖 錯字圖鑑</h2>
+          <h2 className="text-3xl font-black">📖 {student} 的錯字圖鑑</h2>
           <div className="flex flex-wrap gap-2">
             <button type="button" className="btn btn-green px-4 py-2 text-lg" disabled={!rows.length} onClick={doExport}>
               📥 匯出 Excel
             </button>
-            <button type="button" className="btn btn-white px-4 py-2 text-lg" disabled={!rows.length} onClick={() => setConfirmClear(true)}>
+            <button
+              type="button"
+              className="btn btn-white px-4 py-2 text-lg"
+              disabled={!rows.length}
+              onClick={() => setConfirmClear(true)}
+            >
               🗑️ 清空
             </button>
             <button type="button" className="btn btn-pink px-4 py-2 text-lg" onClick={onClose}>
@@ -58,12 +65,12 @@ export default function WrongBook({ entries, onClose, onCleared }: Props) {
         {msg && <p className="mb-2 rounded-xl bg-lime-100 px-3 py-1 font-bold">{msg}</p>}
         {confirmClear && (
           <div className="mb-2 flex flex-wrap items-center gap-2 rounded-xl border-4 border-red-300 bg-red-50 px-3 py-2 font-bold">
-            確定要清空所有錯字紀錄嗎？清空後無法復原。
+            確定要清空 {student} 的所有錯字紀錄嗎？清空後無法復原（其他同學的紀錄不受影響）。
             <button
               type="button"
               className="btn btn-pink px-3 py-1 text-base"
               onClick={() => {
-                clearWrongBook();
+                clearWrongBook(student);
                 setConfirmClear(false);
                 onCleared();
               }}
@@ -83,7 +90,10 @@ export default function WrongBook({ entries, onClose, onCleared }: Props) {
             <p className="font-bold text-ink/60">首次答錯或超時的字詞，會自動收錄在這裡。</p>
           </div>
         ) : (
-          <div className="flex-1 overflow-auto rounded-2xl border-4 border-ink bg-white">
+          <div
+            className="flex-1 overflow-auto overscroll-contain rounded-2xl border-4 border-ink bg-white"
+            style={{ touchAction: 'pan-x pan-y' }}
+          >
             <table className="w-full min-w-[760px] border-collapse text-left">
               <thead className="sticky top-0 bg-yellow-300">
                 <tr>
@@ -98,7 +108,9 @@ export default function WrongBook({ entries, onClose, onCleared }: Props) {
                 {rows.map((e) => (
                   <tr key={e.key} className="border-b-2 border-amber-100 align-top odd:bg-amber-50/50">
                     <td className="px-3 py-2">
-                      <span className={`rounded-full border-2 border-ink px-2 font-black ${GRADE_COLOR[e.grade]}`}>{e.grade}</span>
+                      <span className={`rounded-full border-2 border-ink px-2 font-black ${GRADE_COLOR[e.grade]}`}>
+                        {e.grade}
+                      </span>
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 font-bold">{e.errorType}</td>
                     <td className="kai whitespace-nowrap px-3 py-2 text-3xl font-bold text-blue-800">{e.word}</td>
