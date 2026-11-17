@@ -21,6 +21,14 @@ npm run build:single   # 輸出 dist-single/index.html
 
 `npm run dev` / `npm run build` 會先執行 `scripts/copy-hanzi-data.mjs`，把題庫用到的漢字筆順數據由 `hanzi-writer-data` 複製到 `public/hanzi-data/`，令筆順動畫和 SVG 筆畫對比可離線使用。若本地沒有某個字的數據，會改由 jsDelivr CDN 載入。
 
+### 部署到 GitHub Pages（自動）
+
+網址：https://s1145107-mws.github.io/xiaoziling-images/
+
+`.github/workflows/deploy.yml` 會在推送到 `main` 時自動執行 `npm install`、`npm run build`，並把 `dist/` 部署到 GitHub Pages；開 Pull Request 時只會打包檢查，不會部署。
+
+倉庫的 **Settings → Pages → Build and deployment → Source** 必須設為 **GitHub Actions**。如果設為「Deploy from a branch」，GitHub 會直接發佈未打包的原始碼 `index.html`，瀏覽器要載入 `/src/main.tsx` 而白屏。
+
 ## 目錄結構
 
 ```

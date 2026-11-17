@@ -21,6 +21,11 @@ export function sleep(ms: number) {
   return new Promise<void>((r) => setTimeout(r, ms));
 }
 
+/**
+ * public/ 內資源的網址。vite.config.ts 的 base 為 './'，所以結果是相對路徑，
+ * 例如 assetUrl('images/strokes/s1-l1-q3_a.jpg') → './images/strokes/s1-l1-q3_a.jpg'，
+ * 部署在 GitHub Pages 子路徑 /xiaoziling-images/ 時亦不會破圖。
+ */
 export function assetUrl(path: string): string {
   return `${import.meta.env.BASE_URL}${path.replace(/^\//, '')}`;
 }
