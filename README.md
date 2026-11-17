@@ -34,7 +34,7 @@ xiaoziling/
 │  └─ images/strokes/               # 筆畫題手寫圖片（可選）：{題號}_{a|b|c}.png / .jpg
 └─ src/
    ├─ main.tsx                      # 入口；網址加 ?inspect 開啟筆畫編號檢視器
-   ├─ App.tsx                       # 畫面切換：主選單 → 劇情 → 地圖 → 戰鬥 → 總結算
+   ├─ App.tsx                       # 畫面切換：主選單 → 選擇題庫 → 劇情（首次）→ 戰鬥 → 下一關 → 總結算
    ├─ types.ts
    ├─ data/
    │  ├─ questionBank.ts            # 兩套題目（各 3 關 × 6 題）＋筆畫誤寫變體定義
@@ -52,20 +52,32 @@ xiaoziling/
    │  ├─ ChoicePanel.tsx            # 辨認題（同音 / 筆畫）三選一
    │  ├─ ComposePanel.tsx           # 組字題（拖拽或點擊填入，即時預覽）
    │  ├─ HintModal.tsx              # 錯後提示、筆順動畫、思考問題、補答
+   │  ├─ FitStage.tsx               # 全螢幕自適應舞台（等比例縮放、一屏顯示）
+   │  ├─ SystemButtons.tsx          # 右上角全螢幕 / 音效按鈕
    │  ├─ TimerRing.tsx / HpBar.tsx / Sprites.tsx / LevelBackground.tsx
    │  ├─ WrongBook.tsx              # 錯字圖鑑列表＋匯出
    │  └─ StrokeInspector.tsx        # 老師工具：檢視筆畫序號與誘錯渲染
    └─ screens/
-      ├─ MainMenu.tsx / StoryIntro.tsx / LevelMap.tsx
+      ├─ MainMenu.tsx / SetSelect.tsx / StoryIntro.tsx / LevelMap.tsx
       ├─ Battle.tsx                 # 單關戰鬥狀態機
       └─ FinalScreen.tsx            # 正字核心重組動畫與總結算
 ```
+
+## 全螢幕與 iPad / 電腦適配
+
+- 所有畫面都放在 `FitStage` 內：以固定設計畫布排版（橫向高 800、寬 1060–1600；直向寬 820、高 1000–1400），再按視窗等比例縮放，鋪滿 `100vw × 100dvh`。戰鬥畫面的血條、30 秒倒數環、題幹和三個選項 / 組字槽永遠一屏顯示，不會出現捲軸。
+- 每個畫面右上角有「全螢幕」按鈕（Fullscreen API，含 Safari `webkit` 前綴；不支援的瀏覽器會自動隱藏）和音效開關。
+- iPad：`viewport-fit=cover`、禁止縮放、`apple-mobile-web-app-capable`；全頁 `user-select: none`、取消長按選單和雙擊放大；加入主畫面後可全螢幕開啟。
+- 組字題：部件卡片以 Pointer Events 拖曳（`touch-action: none`），拖到字槽上方時字槽會發亮；亦可直接點擊部件，部件會飛入字槽。
+- 音效：首次觸控任何地方即自動 `AudioContext.resume()` 解鎖；被系統中斷（鎖屏、切換 App）後，下一次觸控會自動恢復。
 
 ## 規則實現摘要
 
 | 規則 | 實現位置 |
 | --- | --- |
-| 開新遊戲隨機抽一套題目 | `pickRandomSetId()`，存於存檔 `setId` |
+| 學生自選第一套 / 第二套題目，兩套進度與星級分開記錄 | `SetSelect.tsx`；`localStorage` 鍵 `xiaoziling.save.v2`（舊版 v1 存檔自動轉移） |
+| 過關後主按鈕「進入下一關：〔名稱〕」，下一關開場約 2.5 秒自動開始（點擊可跳過）；「返回地圖」為角落小按鈕 | `Battle.tsx` 勝利畫面、`quickIntro` |
+| 作答節奏：答對 → 下一題 1.1 秒；答錯 → 提示框 0.45 秒；補答錯誤 → 顯示答案 0.65 秒 | `Battle.tsx` 的 `TIMING` 常數 |
 | 關主 600 HP，每關 6 題（2 同音＋2 筆畫＋2 組字） | `levels.ts`、`questionBank.ts` |
 | 30 秒倒數；≤5 秒紅色脈衝、每秒滴答、BGM 加速 | `TimerRing`、`useCountdown`、`audio.tick()` / `audio.setUrgent()` |
 | 首答正確 −100 HP / +100 分 | `Battle.tsx › dealDamage` |

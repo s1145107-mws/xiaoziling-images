@@ -12,7 +12,7 @@ interface Props {
 export default function HintModal({ question, reason, onRetry }: Props) {
   const isStroke = question.kind === 'stroke';
   const word = (question as ChoiceQuestion).answer;
-  const animSize = isStroke ? (Array.from(word).length >= 4 ? 84 : Array.from(word).length === 1 ? 150 : 116) : 0;
+  const animSize = isStroke ? (Array.from(word).length >= 4 ? 112 : Array.from(word).length === 1 ? 170 : 140) : 0;
 
   return (
     <motion.div
@@ -22,7 +22,7 @@ export default function HintModal({ question, reason, onRetry }: Props) {
       exit={{ opacity: 0 }}
     >
       <motion.div
-        className="panel max-h-[94vh] w-full max-w-2xl overflow-y-auto p-5"
+        className="panel max-h-full w-full max-w-3xl overflow-y-auto p-6"
         initial={{ scale: 0.6, y: 60 }}
         animate={{ scale: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 260, damping: 18 }}

@@ -3,6 +3,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import LevelBackground from '../components/LevelBackground';
 import { BossSprite, Shard, XiaoZiLing, ZhengziCore } from '../components/Sprites';
 import { audio } from '../audio/AudioEngine';
+import FitStage from '../components/FitStage';
+import SystemButtons from '../components/SystemButtons';
 
 interface Page {
   speaker: string;
@@ -52,42 +54,47 @@ export default function StoryIntro({ onDone }: { onDone: () => void }) {
   };
 
   return (
-    <div className="relative flex min-h-full w-full flex-col items-center justify-between overflow-hidden p-4" onClick={next}>
-      <LevelBackground theme={p.scene === 'attack' || p.scene === 'shards' ? 'space' : 'menu'} />
-      <button
-        type="button"
-        className="btn btn-white absolute right-3 top-3 z-20 px-3 py-1 text-base"
-        onClick={(e) => {
-          e.stopPropagation();
-          onDone();
-        }}
-      >
-        跳過 ⏭
-      </button>
+    <FitStage background={<LevelBackground theme={p.scene === 'attack' || p.scene === 'shards' ? 'space' : 'menu'} />}>
+      <div className="relative flex h-full w-full cursor-pointer flex-col items-center justify-between p-6" onClick={next}>
+        {/* 右上角按鈕：阻止點擊冒泡到「點擊繼續」 */}
+        <div className="absolute right-5 top-5 z-20 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <button type="button" className="btn btn-white h-12 px-4 py-0 text-lg" onClick={onDone}>
+            跳過 ⏭
+          </button>
+          <SystemButtons compact />
+        </div>
 
-      <div className="relative z-10 flex flex-1 items-center justify-center">
-        <AnimatePresence mode="wait">
-          <motion.div key={page} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.1 }}>
-            <Scene scene={p.scene} />
-          </motion.div>
-        </AnimatePresence>
-      </div>
+        <div className="relative z-10 flex flex-1 items-center justify-center">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={page}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.1 }}
+            >
+              <Scene scene={p.scene} />
+            </motion.div>
+          </AnimatePresence>
+        </div>
 
-      <div className="panel relative z-10 mb-2 w-full max-w-3xl p-5">
-        <span className="absolute -top-5 left-5 rounded-full border-4 border-ink bg-yellow-300 px-4 py-0.5 text-lg font-black">{p.speaker}</span>
-        <p className="kai min-h-[5.5rem] text-2xl leading-relaxed">{full.slice(0, typed).join('')}</p>
-        <div className="mt-1 flex items-center justify-between">
-          <div className="flex gap-1">
-            {PAGES.map((_, i) => (
-              <span key={i} className={`h-3 w-3 rounded-full border-2 border-ink ${i <= page ? 'bg-sky-400' : 'bg-white'}`} />
-            ))}
+        <div className="panel relative z-10 mb-2 w-full max-w-4xl p-6">
+          <span className="absolute -top-5 left-5 rounded-full border-4 border-ink bg-yellow-300 px-4 py-0.5 text-lg font-black">
+            {p.speaker}
+          </span>
+          <p className="kai min-h-[6.5rem] text-3xl leading-relaxed">{full.slice(0, typed).join('')}</p>
+          <div className="mt-1 flex items-center justify-between">
+            <div className="flex gap-1">
+              {PAGES.map((_, i) => (
+                <span key={i} className={`h-3 w-3 rounded-full border-2 border-ink ${i <= page ? 'bg-sky-400' : 'bg-white'}`} />
+              ))}
+            </div>
+            <motion.span className="font-black" animate={{ x: [0, 6, 0] }} transition={{ duration: 1, repeat: Infinity }}>
+              {page + 1 < PAGES.length ? '點擊繼續 ▶' : '開始冒險 ▶'}
+            </motion.span>
           </div>
-          <motion.span className="font-black" animate={{ x: [0, 6, 0] }} transition={{ duration: 1, repeat: Infinity }}>
-            {page + 1 < PAGES.length ? '點擊繼續 ▶' : '開始冒險 ▶'}
-          </motion.span>
         </div>
       </div>
-    </div>
+    </FitStage>
   );
 }
 
@@ -116,7 +123,11 @@ function Scene({ scene }: { scene: Page['scene'] }) {
   }
   if (scene === 'attack') {
     return (
-      <motion.div className="flex items-center gap-4" animate={{ x: [0, -10, 10, -6, 6, 0] }} transition={{ duration: 0.6, repeat: 2 }}>
+      <motion.div
+        className="flex items-center gap-4"
+        animate={{ x: [0, -10, 10, -6, 6, 0] }}
+        transition={{ duration: 0.6, repeat: 2 }}
+      >
         <div className="h-52 w-52">
           <BossSprite theme="space" />
         </div>

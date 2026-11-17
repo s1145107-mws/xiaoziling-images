@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import type { ChoiceOption, ChoiceQuestion } from '../types';
 import { StrokeWord } from './StrokeGlyph';
+import { useStage } from './FitStage';
+import { battleLayout } from '../lib/battleLayout';
 import { assetUrl, shuffle } from '../lib/utils';
 import { EMBEDDED_STROKE_IMAGES } from '../generated/embeddedAssets';
 
@@ -14,35 +16,54 @@ interface Props {
   revealCorrect: boolean;
   pickedId: string | null;
   onPick: (opt: ChoiceOption) => void;
+  /** 題幹左上角的標籤（題型、補答提示） */
+  chips?: ReactNode;
+  /** 補答階段：以思考問題取代副標題 */
+  think?: string | null;
 }
 
 const LETTERS = ['A', 'B', 'C'];
-const STROKE_CHAR_SIZE: Record<number, number> = { 1: 132, 2: 96, 3: 72, 4: 62 };
 
-export default function ChoicePanel({ question, attemptKey, disabled, revealCorrect, pickedId, onPick }: Props) {
+export default function ChoicePanel({ question, attemptKey, disabled, revealCorrect, pickedId, onPick, chips, think }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const options = useMemo(() => shuffle(question.options), [question.id, attemptKey]);
+  const L = battleLayout(useStage());
   const isStroke = question.kind === 'stroke';
   const len = Array.from(question.answer).length;
   const images = useStrokeImages(question);
 
+  // 直向畫面寬度有限：三字以上的詞語改為三行排列，字才寫得夠大
+  const rows = L.portrait && len >= 3;
+  const gridGap = 12;
+  const gridH = L.questionH - L.promptH - L.gap;
+  const cardW = rows ? L.questionW : (L.questionW - gridGap * 2) / 3;
+  const cardH = rows ? (gridH - gridGap * 2) / 3 : gridH;
+  // 卡片內容可用空間（扣除邊框、內距、字母標籤）
+  // 三行排列時，左右各留位置給 A/B/C 標籤和「正確答案」標記
+  const innerW = cardW - (rows ? 260 : 32);
+  const innerH = cardH - (rows ? 24 : 56);
+  const charSize = Math.floor(Math.min(innerH * 0.8, (innerW - (len - 1) * 4) / len, 220));
+  const textSize = Math.floor(Math.min(innerW / (len * 1.15), innerH * 0.6, 110));
+
   return (
-    <div className="flex w-full flex-col items-center gap-3">
-      <div className="panel w-full max-w-3xl px-4 py-3 text-center">
-        {isStroke ? (
-          <>
-            <p className="text-lg font-black sm:text-xl">✏️ 魔鏡照出了三個「{question.answer}」，只有一個筆畫是完全正確的！</p>
-            <p className="mt-1 text-sm font-bold text-ink/70">仔細觀察每一筆：有沒有多一筆、少一筆，或者筆畫沒有貫穿？</p>
-          </>
-        ) : (
-          <>
-            <p className="text-lg font-black sm:text-xl">🔍 下面哪一個是正確的字詞？</p>
-            <p className="mt-1 text-sm font-bold text-ink/70">三個詞語的讀音一樣，想一想字的意思和部首！</p>
-          </>
-        )}
+    <div className="flex h-full w-full flex-col" style={{ gap: L.gap }}>
+      <div className="panel flex shrink-0 flex-col justify-center px-5 text-center" style={{ height: L.promptH }}>
+        <div className="flex items-center justify-center gap-3">
+          {chips}
+          <p className="min-w-0 truncate text-2xl font-black">
+            {isStroke ? `✏️ 哪一個「${question.answer}」的筆畫完全正確？` : '🔍 下面哪一個是正確的字詞？'}
+          </p>
+        </div>
+        <p className={`mt-1 truncate text-lg font-bold ${think ? 'kai text-pink-600' : 'text-ink/70'}`}>
+          {think
+            ? `🤔 ${think}`
+            : isStroke
+              ? '仔細觀察每一筆：有沒有多一筆、少一筆，或者筆畫沒有貫穿？'
+              : '三個詞語的讀音一樣，想一想字的意思和部首！'}
+        </p>
       </div>
 
-      <div className={`grid w-full max-w-3xl gap-3 ${isStroke && len >= 3 ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-3'}`}>
+      <div className={`grid min-h-0 flex-1 ${rows ? 'grid-cols-1 grid-rows-3' : 'grid-cols-3'}`} style={{ gap: gridGap }}>
         {options.map((opt, i) => {
           const picked = pickedId === opt.id;
           const showCorrect = revealCorrect && opt.correct;
@@ -53,7 +74,7 @@ export default function ChoicePanel({ question, attemptKey, disabled, revealCorr
               ? 'bg-red-100 ring-8 ring-red-300'
               : picked && opt.correct
                 ? 'bg-lime-200 ring-8 ring-lime-400'
-                : 'bg-white hover:-translate-y-1 hover:bg-amber-50';
+                : 'bg-white hover:bg-amber-50 active:scale-[0.98]';
           return (
             <motion.button
               key={`${attemptKey}-${opt.id}`}
@@ -61,22 +82,22 @@ export default function ChoicePanel({ question, attemptKey, disabled, revealCorr
               disabled={disabled}
               onClick={() => onPick(opt)}
               initial={{ opacity: 0, y: 30, scale: 0.9 }}
-              animate={showCorrect ? { opacity: 1, y: 0, scale: [1, 1.08, 1] } : { opacity: 1, y: 0, scale: 1 }}
-              transition={showCorrect ? { duration: 0.8, repeat: Infinity } : { delay: i * 0.08 }}
-              className={`relative flex min-h-[120px] flex-col items-center justify-center rounded-3xl border-4 border-ink p-2 shadow-pop transition disabled:cursor-default ${ring}`}
+              animate={showCorrect ? { opacity: 1, y: 0, scale: [1, 1.04, 1] } : { opacity: 1, y: 0, scale: 1 }}
+              transition={showCorrect ? { duration: 0.8, repeat: Infinity } : { delay: i * 0.06, duration: 0.25 }}
+              className={`relative flex min-h-0 items-center justify-center overflow-hidden rounded-3xl border-4 border-ink p-3 shadow-pop transition-colors disabled:cursor-default ${ring}`}
             >
-              <span className="absolute left-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border-2 border-ink bg-yellow-300 text-sm font-black">
+              <span className="absolute left-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border-2 border-ink bg-yellow-300 text-lg font-black">
                 {LETTERS[i]}
               </span>
               {showCorrect && (
-                <span className="absolute -top-4 right-2 rounded-full border-2 border-ink bg-lime-400 px-2 text-sm font-black">
-                  ✔ 正確答案
-                </span>
+                <span className="absolute right-3 top-3 rounded-full border-2 border-ink bg-lime-400 px-3 text-lg font-black">✔ 正確答案</span>
               )}
               {isStroke ? (
-                <StrokeOptionVisual option={opt} charSize={STROKE_CHAR_SIZE[len] ?? 60} images={images} />
+                <StrokeOptionVisual option={opt} charSize={charSize} images={images} maxW={innerW} maxH={innerH} />
               ) : (
-                <span className="kai py-4 text-5xl font-bold tracking-widest sm:text-6xl">{opt.text}</span>
+                <span className="kai font-bold leading-none tracking-wider" style={{ fontSize: textSize }}>
+                  {opt.text}
+                </span>
               )}
             </motion.button>
           );
@@ -147,26 +168,25 @@ function StrokeOptionVisual({
   option,
   charSize,
   images,
+  maxW,
+  maxH,
 }: {
   option: ChoiceOption;
   charSize: number;
   images: 'loading' | Record<string, string> | null;
+  maxW: number;
+  maxH: number;
 }) {
-  const len = Array.from(option.text).length;
   if (images === 'loading') return <div style={{ height: charSize }} />;
-  return (
-    <div className="relative flex items-center justify-center py-2">
-      {images ? (
-        <img
-          src={images[option.id]}
-          alt={option.text}
-          draggable={false}
-          className="rounded-lg"
-          style={{ height: charSize * 1.25, maxWidth: charSize * len + 40, objectFit: 'contain' }}
-        />
-      ) : (
-        <StrokeWord text={option.text} variant={option.variant} charSize={charSize} />
-      )}
-    </div>
+  return images ? (
+    <img
+      src={images[option.id]}
+      alt={option.text}
+      draggable={false}
+      className="rounded-xl"
+      style={{ width: maxW, height: maxH, objectFit: 'contain' }}
+    />
+  ) : (
+    <StrokeWord text={option.text} variant={option.variant} charSize={charSize} />
   );
 }

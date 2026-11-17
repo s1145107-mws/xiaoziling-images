@@ -13,7 +13,7 @@ export default function StrokeInspector() {
   );
 
   return (
-    <div className="min-h-full bg-cream p-6 font-round">
+    <div className="h-full overflow-y-auto bg-cream p-6 font-round" style={{ touchAction: "pan-y" }}>
       <h1 className="mb-1 text-3xl font-black">筆畫編號檢視器</h1>
       <p className="mb-6 font-bold text-ink/70">
         紅色數字為 hanzi-writer 筆畫序號（0 起計）。誘錯選項的變化定義在 src/data/questionBank.ts；如需改用手寫圖片，
