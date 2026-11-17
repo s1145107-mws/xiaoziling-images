@@ -34,7 +34,7 @@ xiaoziling/
 │  └─ images/strokes/               # 筆畫題手寫圖片（可選）：{題號}_{a|b|c}.png / .jpg
 └─ src/
    ├─ main.tsx                      # 入口；網址加 ?inspect 開啟筆畫編號檢視器
-   ├─ App.tsx                       # 畫面切換：主選單 → 劇情 → 地圖 → 戰鬥 → 總結算
+   ├─ App.tsx                       # 畫面切換：主選單 → 選擇題庫 → 劇情（首次）→ 戰鬥 → 下一關 → 總結算
    ├─ types.ts
    ├─ data/
    │  ├─ questionBank.ts            # 兩套題目（各 3 關 × 6 題）＋筆畫誤寫變體定義
@@ -56,7 +56,7 @@ xiaoziling/
    │  ├─ WrongBook.tsx              # 錯字圖鑑列表＋匯出
    │  └─ StrokeInspector.tsx        # 老師工具：檢視筆畫序號與誘錯渲染
    └─ screens/
-      ├─ MainMenu.tsx / StoryIntro.tsx / LevelMap.tsx
+      ├─ MainMenu.tsx / SetSelect.tsx / StoryIntro.tsx / LevelMap.tsx
       ├─ Battle.tsx                 # 單關戰鬥狀態機
       └─ FinalScreen.tsx            # 正字核心重組動畫與總結算
 ```
@@ -65,7 +65,9 @@ xiaoziling/
 
 | 規則 | 實現位置 |
 | --- | --- |
-| 開新遊戲隨機抽一套題目 | `pickRandomSetId()`，存於存檔 `setId` |
+| 學生自選第一套 / 第二套題目，兩套進度與星級分開記錄 | `SetSelect.tsx`；`localStorage` 鍵 `xiaoziling.save.v2`（舊版 v1 存檔自動轉移） |
+| 過關後主按鈕「進入下一關：〔名稱〕」，下一關開場約 2.5 秒自動開始（點擊可跳過）；「返回地圖」為角落小按鈕 | `Battle.tsx` 勝利畫面、`quickIntro` |
+| 作答節奏：答對 → 下一題 1.1 秒；答錯 → 提示框 0.45 秒；補答錯誤 → 顯示答案 0.65 秒 | `Battle.tsx` 的 `TIMING` 常數 |
 | 關主 600 HP，每關 6 題（2 同音＋2 筆畫＋2 組字） | `levels.ts`、`questionBank.ts` |
 | 30 秒倒數；≤5 秒紅色脈衝、每秒滴答、BGM 加速 | `TimerRing`、`useCountdown`、`audio.tick()` / `audio.setUrgent()` |
 | 首答正確 −100 HP / +100 分 | `Battle.tsx › dealDamage` |

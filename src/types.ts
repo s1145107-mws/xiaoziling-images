@@ -99,13 +99,20 @@ export interface LevelRecord {
   wrongFirstTries: number;
 }
 
-export interface SaveData {
-  version: 1;
-  setId: 1 | 2;
+export type SetId = 1 | 2;
+
+/** 單套題目的進度（兩套各自獨立記錄） */
+export interface SetProgress {
+  setId: SetId;
   levelIndex: number; // 目前要挑戰的關卡 0-2；3 = 已全部通關
   records: LevelRecord[];
-  storySeen: boolean;
   updatedAt: number;
+}
+
+export interface SaveData {
+  version: 2;
+  storySeen: boolean;
+  sets: Record<SetId, SetProgress>;
 }
 
 export interface WrongBookEntry {

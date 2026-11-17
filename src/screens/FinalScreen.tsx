@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import type { SaveData } from '../types';
+import type { SetProgress } from '../types';
+import { QUESTION_SETS } from '../data/questionBank';
 import { LEVELS, rateLevel } from '../data/levels';
 import LevelBackground from '../components/LevelBackground';
 import { Badge, Shard, XiaoZiLing, ZhengziCore } from '../components/Sprites';
 import { audio } from '../audio/AudioEngine';
 
 interface Props {
-  save: SaveData;
+  save: SetProgress;
   onOpenWrongBook: () => void;
-  onNewGame: () => void;
+  onChooseSet: () => void;
   onMenu: () => void;
 }
 
@@ -19,7 +20,7 @@ const START = [
   { x: 0, y: 220 },
 ];
 
-export default function FinalScreen({ save, onOpenWrongBook, onNewGame, onMenu }: Props) {
+export default function FinalScreen({ save, onOpenWrongBook, onChooseSet, onMenu }: Props) {
   // 0 碎片飛入 → 1 核心重組發光 → 2 顯示成績
   const [stage, setStage] = useState(0);
   const total = save.records.reduce((a, r) => a + r.finalScore, 0);
@@ -103,7 +104,7 @@ export default function FinalScreen({ save, onOpenWrongBook, onNewGame, onMenu }
       {stage >= 2 && (
         <motion.div className="panel relative z-10 mt-5 w-full max-w-3xl p-5" initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
           <div className="mb-4 text-center">
-            <p className="text-lg font-black text-ink/70">總得分</p>
+            <p className="text-lg font-black text-ink/70">{QUESTION_SETS[save.setId].name}・總得分</p>
             <p className="text-6xl font-black text-amber-500 [text-shadow:_2px_2px_0_#3b2a1a]">{total}</p>
             <p className="font-bold text-ink/70">（三關首輪合共 {firstTotal} / 1800 分）</p>
           </div>
@@ -134,8 +135,8 @@ export default function FinalScreen({ save, onOpenWrongBook, onNewGame, onMenu }
             <button type="button" className="btn btn-blue" onClick={onOpenWrongBook}>
               📖 錯字圖鑑
             </button>
-            <button type="button" className="btn btn-yellow" onClick={onNewGame}>
-              🔄 再玩一次
+            <button type="button" className="btn btn-yellow" onClick={onChooseSet}>
+              📚 選擇題庫
             </button>
             <button type="button" className="btn btn-white" onClick={onMenu}>
               🏠 主選單

@@ -515,9 +515,5 @@ const SET_2: QuestionSet = {
   ],
 };
 
+/** 兩套題目由學生在「選擇題庫」畫面自選 */
 export const QUESTION_SETS: Record<1 | 2, QuestionSet> = { 1: SET_1, 2: SET_2 };
-
-/** 開新遊戲時隨機抽取一套題目 */
-export function pickRandomSetId(): 1 | 2 {
-  return Math.random() < 0.5 ? 1 : 2;
-}

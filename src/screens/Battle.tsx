@@ -32,6 +32,14 @@ import { Badge, BossSprite, Shard, XiaoZiLing } from '../components/Sprites';
  * fail       6 題完成但關主仍有 HP → 重試錯題
  * victory    關主 HP 歸零
  */
+/** 作答節奏（毫秒）：盡量短，但保留足夠時間看到攻擊 / 受擊動畫 */
+const TIMING = {
+  afterCorrect: 1100, // 答對 / 補答正確 → 下一題（原 1700）
+  beforeHint: 450, // 首答錯誤 / 超時 → 提示框（原 700）
+  beforeReveal: 650, // 補答錯誤被重擊 → 顯示正確答案（原 900）
+  quickIntro: 2500, // 連續闖關時，下一關開場自動開始
+};
+
 type Phase = 'intro' | 'answering' | 'animating' | 'hint' | 'reveal' | 'fail' | 'victory';
 type Attempt = 'first' | 'retry';
 type Fx = { kind: 'attack' | 'hurt'; id: number; damage: number } | null;
@@ -39,14 +47,26 @@ type Fx = { kind: 'attack' | 'hurt'; id: number; damage: number } | null;
 interface Props {
   setId: 1 | 2;
   levelIndex: number;
-  onVictory: (record: LevelRecord) => void;
+  /** goNext = true：直接進入下一關；false：返回地圖 */
+  onVictory: (record: LevelRecord, goNext: boolean) => void;
+  /** 由上一關「進入下一關」而來：開場改為簡短自動播放 */
+  quickIntro?: boolean;
   onExit: () => void;
   onWrongBookChange: () => void;
   muted: boolean;
   onToggleMute: () => void;
 }
 
-export default function Battle({ setId, levelIndex, onVictory, onExit, onWrongBookChange, muted, onToggleMute }: Props) {
+export default function Battle({
+  setId,
+  levelIndex,
+  onVictory,
+  quickIntro = false,
+  onExit,
+  onWrongBookChange,
+  muted,
+  onToggleMute,
+}: Props) {
   const meta = LEVELS[levelIndex];
   const allQuestions = QUESTION_SETS[setId].levels[levelIndex].questions;
 
@@ -99,6 +119,13 @@ export default function Battle({ setId, levelIndex, onVictory, onExit, onWrongBo
     audio.setUrgent(timerRunning && remaining <= WARNING_TIME);
   }, [timerRunning, remaining]);
 
+  // 連續闖關：開場過場自動播放，時間到自動開始（點擊任意處可提早開始）
+  useEffect(() => {
+    if (phase !== 'intro' || !quickIntro) return;
+    const id = window.setTimeout(() => setPhase('answering'), TIMING.quickIntro);
+    return () => clearTimeout(id);
+  }, [phase, quickIntro]);
+
   /* --------------------------- 作答流程 --------------------------- */
 
   const showToast = (text: string, good: boolean) => setToast({ text, good, id: Date.now() });
@@ -135,7 +162,7 @@ export default function Battle({ setId, levelIndex, onVictory, onExit, onWrongBo
     later(() => audio.attack(), 150);
     setFx({ kind: 'attack', id: Date.now(), damage: dmg });
     showToast(dmg > 0 ? `${label}！+${dmg} 分` : `${label}！（此題已得過分）`, true);
-    later(goNext, 1700);
+    later(goNext, TIMING.afterCorrect);
   };
 
   function handleFirstWrong(reason: 'wrong' | 'timeout') {
@@ -148,7 +175,7 @@ export default function Battle({ setId, levelIndex, onVictory, onExit, onWrongBo
     else audio.wrong();
     showToast(reason === 'timeout' ? '時間到！' : '答錯了……', false);
     setPhase('animating');
-    later(() => setPhase('hint'), 700);
+    later(() => setPhase('hint'), TIMING.beforeHint);
   }
 
   const handleAnswer = (correct: boolean) => {
@@ -167,7 +194,7 @@ export default function Battle({ setId, levelIndex, onVictory, onExit, onWrongBo
       audio.hurt();
       void shake.start({ x: [0, -22, 20, -16, 12, -6, 0], transition: { duration: 0.55 } });
       showToast('哎喲！被關主重擊了！', false);
-      later(() => setPhase('reveal'), 900);
+      later(() => setPhase('reveal'), TIMING.beforeReveal);
     }
   };
 
@@ -202,15 +229,19 @@ export default function Battle({ setId, levelIndex, onVictory, onExit, onWrongBo
     setPhase('answering');
   };
 
-  const finishLevel = () => {
+  const finishLevel = (goNext: boolean) => {
     audio.click();
-    onVictory({
-      cleared: true,
-      firstRoundScore: firstRoundScore ?? totalScore,
-      finalScore: totalScore,
-      wrongFirstTries,
-    });
+    onVictory(
+      {
+        cleared: true,
+        firstRoundScore: firstRoundScore ?? totalScore,
+        finalScore: totalScore,
+        wrongFirstTries,
+      },
+      goNext,
+    );
   };
+  const nextMeta = LEVELS[levelIndex + 1];
 
   /* ----------------------------- 畫面 ----------------------------- */
 
@@ -324,7 +355,7 @@ export default function Battle({ setId, levelIndex, onVictory, onExit, onWrongBo
                       : { y: [0, -6, 0] }
               }
               transition={
-                phase === 'victory' ? { duration: 1.4 } : fx ? { duration: 0.9, times: fx.kind === 'attack' ? [0, 0.45, 0.55, 0.7, 0.85, 1] : undefined } : { duration: 3, repeat: Infinity }
+                phase === 'victory' ? { duration: 0.9 } : fx ? { duration: 0.75, times: fx.kind === 'attack' ? [0, 0.45, 0.55, 0.7, 0.85, 1] : undefined } : { duration: 3, repeat: Infinity }
               }
             >
               <BossSprite theme={meta.theme} hurt={fx?.kind === 'attack' || phase === 'victory'} />
@@ -336,7 +367,7 @@ export default function Battle({ setId, levelIndex, onVictory, onExit, onWrongBo
                     className="absolute -top-2 left-1/2 text-4xl font-black text-red-600 [text-shadow:_2px_2px_0_#fff,-2px_-2px_0_#fff,2px_-2px_0_#fff,-2px_2px_0_#fff]"
                     initial={{ opacity: 0, y: 0, x: '-50%', scale: 0.5 }}
                     animate={{ opacity: [0, 1, 1, 0], y: -60, scale: [0.5, 1.5, 1.2, 1] }}
-                    transition={{ duration: 1.2, delay: 0.45 }}
+                    transition={{ duration: 0.8, delay: 0.35 }}
                   >
                     -{fx.damage}
                   </motion.div>
@@ -355,7 +386,7 @@ export default function Battle({ setId, levelIndex, onVictory, onExit, onWrongBo
                 }`}
                 initial={{ opacity: 0, y: 20, scale: 0.6 }}
                 animate={{ opacity: [0, 1, 1, 0], y: [20, 0, 0, -20], scale: 1 }}
-                transition={{ duration: 1.6 }}
+                transition={{ duration: 1.1 }}
                 onAnimationComplete={() => setToast(null)}
               >
                 {toast.text}
@@ -428,7 +459,36 @@ export default function Battle({ setId, levelIndex, onVictory, onExit, onWrongBo
 
       {/* 關主登場 */}
       <AnimatePresence>
-        {phase === 'intro' && (
+        {phase === 'intro' && quickIntro && (
+          <Overlay
+            onClick={() => {
+              audio.click();
+              setPhase('answering');
+            }}
+          >
+            <p className="text-center text-lg font-black text-sky-600">
+              第{['一', '二', '三'][levelIndex]}關・{meta.grade}字詞
+            </p>
+            <h2 className="text-center text-4xl font-black">{meta.name}</h2>
+            <p className="kai mt-2 text-center text-lg">{meta.intro}</p>
+            <div className="mx-auto my-2 h-28 w-28">
+              <BossSprite theme={meta.theme} />
+            </div>
+            <p className="kai text-center text-xl">
+              {meta.boss}：「{meta.bossLine}」
+            </p>
+            <div className="mx-auto mt-4 h-3 w-full max-w-xs overflow-hidden rounded-full border-2 border-ink bg-white">
+              <motion.div
+                className="h-full bg-yellow-300"
+                initial={{ width: '0%' }}
+                animate={{ width: '100%' }}
+                transition={{ duration: TIMING.quickIntro / 1000, ease: 'linear' }}
+              />
+            </div>
+            <p className="mt-2 text-center font-black text-ink/60">點擊任意處立即開始 ▶</p>
+          </Overlay>
+        )}
+        {phase === 'intro' && !quickIntro && (
           <Overlay>
             <div className="mx-auto mb-2 h-36 w-36">
               <BossSprite theme={meta.theme} />
@@ -485,9 +545,18 @@ export default function Battle({ setId, levelIndex, onVictory, onExit, onWrongBo
       {/* 勝利 */}
       <AnimatePresence>
         {phase === 'victory' && (
-          <Overlay delay={1.2}>
+          <Overlay delay={0.8}>
+            {nextMeta && (
+              <button
+                type="button"
+                className="absolute right-3 top-3 rounded-xl border-2 border-ink/40 bg-white px-2 py-0.5 text-sm font-bold text-ink/70 hover:bg-amber-50"
+                onClick={() => finishLevel(false)}
+              >
+                🗺️ 返回地圖
+              </button>
+            )}
             <motion.h2
-              className="text-center text-4xl font-black text-amber-500 [text-shadow:_3px_3px_0_#3b2a1a]"
+              className="mt-5 text-center text-4xl font-black text-amber-500 [text-shadow:_3px_3px_0_#3b2a1a]"
               animate={{ scale: [1, 1.1, 1] }}
               transition={{ duration: 1, repeat: Infinity }}
             >
@@ -499,7 +568,7 @@ export default function Battle({ setId, levelIndex, onVictory, onExit, onWrongBo
                 className="flex flex-col items-center"
                 initial={{ scale: 0, rotate: -180 }}
                 animate={{ scale: 1, rotate: 0 }}
-                transition={{ delay: 1.6, type: 'spring' }}
+                transition={{ delay: 1.1, type: 'spring' }}
               >
                 <Shard theme={meta.theme} size={96} />
                 <span className="font-black">{meta.shard}</span>
@@ -508,7 +577,7 @@ export default function Battle({ setId, levelIndex, onVictory, onExit, onWrongBo
                 className="flex flex-col items-center"
                 initial={{ scale: 0, y: 40 }}
                 animate={{ scale: 1, y: 0 }}
-                transition={{ delay: 2, type: 'spring' }}
+                transition={{ delay: 1.35, type: 'spring' }}
               >
                 <Badge theme={meta.theme} size={90} />
                 <span className="mt-1 font-black">{meta.badge}</span>
@@ -518,9 +587,15 @@ export default function Battle({ setId, levelIndex, onVictory, onExit, onWrongBo
               本關得分：{totalScore} 分（首輪 {firstRoundScore ?? totalScore} 分）
             </p>
             <div className="mt-4 flex justify-center">
-              <button type="button" className="btn btn-green text-2xl" onClick={finishLevel}>
-                {levelIndex < 2 ? '收下碎片，繼續冒險 ➜' : '收下碎片，修復字典！✨'}
-              </button>
+              <motion.button
+                type="button"
+                className="btn btn-green text-2xl"
+                onClick={() => finishLevel(true)}
+                animate={{ scale: [1, 1.06, 1] }}
+                transition={{ duration: 1.2, repeat: Infinity }}
+              >
+                {nextMeta ? `進入下一關：${nextMeta.name} ➜` : '收下碎片，修復字典！✨'}
+              </motion.button>
             </div>
           </Overlay>
         )}
@@ -554,17 +629,18 @@ export default function Battle({ setId, levelIndex, onVictory, onExit, onWrongBo
   );
 }
 
-function Overlay({ children, delay = 0 }: { children: ReactNode; delay?: number }) {
+function Overlay({ children, delay = 0, onClick }: { children: ReactNode; delay?: number; onClick?: () => void }) {
   return (
     <motion.div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-ink/50 p-3"
+      onClick={onClick}
+      className={`fixed inset-0 z-40 flex items-center justify-center bg-ink/50 p-3 ${onClick ? 'cursor-pointer' : ''}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ delay }}
     >
       <motion.div
-        className="panel max-h-[94vh] w-full max-w-xl overflow-y-auto p-5"
+        className="panel relative max-h-[94vh] w-full max-w-xl overflow-y-auto p-5"
         initial={{ scale: 0.6, y: 60 }}
         animate={{ scale: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 260, damping: 18, delay }}

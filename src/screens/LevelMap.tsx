@@ -1,12 +1,12 @@
 import { motion } from 'framer-motion';
-import type { SaveData } from '../types';
+import type { SetProgress } from '../types';
 import { LEVELS, rateLevel } from '../data/levels';
 import { QUESTION_SETS } from '../data/questionBank';
 import LevelBackground from '../components/LevelBackground';
 import { Badge, Shard } from '../components/Sprites';
 
 interface Props {
-  save: SaveData;
+  save: SetProgress;
   wrongCount: number;
   onStart: (levelIndex: number) => void;
   onMenu: () => void;
@@ -25,7 +25,7 @@ export default function LevelMap({ save, wrongCount, onStart, onMenu, onOpenWron
       <LevelBackground theme="menu" />
       <header className="relative z-10 flex w-full max-w-4xl flex-wrap items-center justify-between gap-2">
         <button type="button" className="btn btn-white px-3 py-1 text-base" onClick={onMenu}>
-          🏠 主選單
+          ⬅ 選擇題庫
         </button>
         <span className="rounded-2xl border-4 border-ink bg-white px-3 py-1 font-black">冒險地圖・{QUESTION_SETS[save.setId].name}</span>
         <button type="button" className="btn btn-blue px-3 py-1 text-base" onClick={onOpenWrongBook}>
